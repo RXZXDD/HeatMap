@@ -1,0 +1,75 @@
+﻿#include "/Engine/Public/Platform.ush"
+
+uint Total;
+uint DataNum;
+RWTexture2D<float4> RWOutputSurface;//output UAV
+
+//MAX_DATA_NUM: set from cpp side default=2000
+float4 input_Coord[MAX_DATA_NUM];// (input location in pixel ,0,0)
+float4 input_Val[MAX_DATA_NUM];// (R,G,B, 0)
+
+uint TextureSize;
+//float4 input_Val[3]; //input factor
+
+float opSmoothUnion(float d1, float d2, float k)
+{
+	float alpha = clamp(0.5 + (d2 - d1)/ (2*k), 0.0 ,1.0);
+	return lerp( d2 ,d1 ,alpha) - k*alpha*(1 - alpha);
+}
+
+[numthreads(THREADGROUP_SIZE_X, THREADGROUP_SIZE_Y, THREADGROUP_SIZE_Z)]
+void MainCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+	uint3 GroupThreadId : SV_GroupThreadID)
+	{
+
+	float r[MAX_DATA_NUM];
+	float R = 100; //Circle radius in pixel
+	float Range;
+	float3 out_val = (0,0,0); //final output with factor
+
+	// float4 input_Coord1[4] =
+	// 					{	252,124,0,0,
+	// 						153,55,0,0,
+	// 						64,96,0,0,
+	// 						252,224,0,0,
+	// 					};
+	//
+	// float4 input_Val1[4] =
+	// 					{	0.8,0.2,0.6,0,
+	// 						1,0.6,0.5,0,
+	// 						0.8,0.2,0.6,0,
+	// 						1,1,1,0,
+	// 					};
+	
+	for(int i = 0; i < DataNum; i++)
+	{
+		float inRange =  length(input_Coord[i].xy -DispatchThreadId.xy) - R;
+		//normalize range
+		inRange =( inRange +R) / TextureSize  ;
+		inRange = smoothstep(0,(R+R)/TextureSize, inRange);
+		inRange = 1- inRange;
+		
+		r[i] = inRange ;
+	}
+	Range = r[0];
+
+	for(int k = 0; k < DataNum; k++)
+	{
+		Range = max(Range, r[k]);
+		//Range = opSmoothUnion(Range, r[k], 0.2);
+		float3 alpha = r[k] > 0 ? input_Val[k].xyz*r[k] : float3(0,0,0);
+		out_val = max(out_val , alpha) ;
+		
+	}
+	// out_val.x = min(out_val.r, 1);
+	// out_val.g = min(out_val.g, 1);
+	// out_val.b = min(out_val.b, 1);
+	//
+	// out_val.x = max(out_val.r, 0.2);
+	// out_val.g = max(out_val.g, 0.195);
+	// out_val.b = max(out_val.b, 0.1);
+	 RWOutputSurface[DispatchThreadId.xy] = float4(out_val,Range);
+
+	}
