@@ -11,10 +11,10 @@ USTRUCT(BlueprintType)
 struct FHeatMapInputParam
 {
 	GENERATED_BODY()
-	UPROPERTY(BlueprintReadWrite,EditAnywhere)
+	UPROPERTY(BlueprintReadWrite,EditAnywhere, Category="HeatMapParam")
 	FVector4 In_Coord;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="HeatMapParam")
 	FVector3f In_RGB;
 };
 

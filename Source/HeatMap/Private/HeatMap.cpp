@@ -2,8 +2,6 @@
 
 #include "HeatMap.h"
 
-#include "Interfaces/IPluginManager.h"
-
 #define LOCTEXT_NAMESPACE "FHeatMapModule"
 
 void FHeatMapModule::StartupModule()

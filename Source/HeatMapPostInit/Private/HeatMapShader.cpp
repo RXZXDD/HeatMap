@@ -2,6 +2,7 @@
 #include "RenderGraphBuilder.h"
 #include "RenderGraphUtils.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "RHIStaticStates.h"
 
 IMPLEMENT_GLOBAL_SHADER(FHeatMapShader, "/Plugin/HeatMap/Private/HeatmapDrawer.usf", "MainCS", SF_Compute);
 
