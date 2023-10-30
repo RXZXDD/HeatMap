@@ -1,15 +1,33 @@
 ﻿#include "/Engine/Public/Platform.ush"
 
-uint Total;
-uint DataNum;
+//#define SHAPE_CIRCLE 0
+//#define SHAPE_SQUARE 1
+#define SHAPE 0 //0: circle; 1: squre
+
+
+float Total;
+float DataNum;
 RWTexture2D<float4> RWOutputSurface;//output UAV
 
-//MAX_DATA_NUM: set from cpp side default=2000
 float4 input_Coord[MAX_DATA_NUM];// (input location in pixel ,0,0)
-float4 input_Val[MAX_DATA_NUM];// (R,G,B, 0)
+float4 input_Val[MAX_DATA_NUM];// (Temp ,Wind,Rain, 0)
+float TextureSize;
 
-uint TextureSize;
 //float4 input_Val[3]; //input factor
+
+#if SHAPE == 0
+	float sdCircle( float2 p, float r )
+	{
+		return length(p) - r;
+	}
+#elif SHAPE == 1
+	float sdBox( float2 p, float2 b )
+	{
+		float2 d = abs(p)-b;
+		return step(0,length(max(d,0.0)) + min(max(d.x,d.y),0.0));
+	}
+#endif
+
 
 float opSmoothUnion(float d1, float d2, float k)
 {
@@ -25,9 +43,9 @@ void MainCS(
 	{
 
 	float r[MAX_DATA_NUM];
-	float R = 100; //Circle radius in pixel
+	float R = 14; //Circle radius in pixel
 	float Range;
-	float3 out_val = (0,0,0); //final output with factor
+	float3 OutVal = (0,0,0); //final output with factor
 
 	// float4 input_Coord1[4] =
 	// 					{	252,124,0,0,
@@ -45,31 +63,44 @@ void MainCS(
 	
 	for(int i = 0; i < DataNum; i++)
 	{
-		float inRange =  length(input_Coord[i].xy -DispatchThreadId.xy) - R;
-		//normalize range
-		inRange =( inRange +R) / TextureSize  ;
-		inRange = smoothstep(0,(R+R)/TextureSize, inRange);
+		#if SHAPE == 0
+
+			float inRange =  length(input_Coord[i].xy -DispatchThreadId.xy) - R;
+			//remap value to [0,1]
+			inRange =( inRange +R) / TextureSize  ;
+			inRange = smoothstep(0,(R+R)/TextureSize, inRange);
+
+		#elif SHAPE == 1
+
+			float inRange =  sdBox(input_Coord[i].xy -DispatchThreadId.xy, float2(R,R));
+		
+		#endif
+		//reverse DF value
 		inRange = 1- inRange;
 		
 		r[i] = inRange ;
 	}
+
 	Range = r[0];
 
-	for(int k = 0; k < DataNum; k++)
+	//blend all DF;
+	for(int k = 0 ; k < DataNum; k++)
 	{
 		Range = max(Range, r[k]);
 		//Range = opSmoothUnion(Range, r[k], 0.2);
-		float3 alpha = r[k] > 0 ? input_Val[k].xyz*r[k] : float3(0,0,0);
-		out_val = max(out_val , alpha) ;
+
+		//multiply factor if this DF pixel is in range
+		float3 alpha = r[k] > 0 ? input_Val[k].xyz*r[k] : (0,0,0);
+		OutVal = max(OutVal , alpha) ;
 		
 	}
-	// out_val.x = min(out_val.r, 1);
-	// out_val.g = min(out_val.g, 1);
-	// out_val.b = min(out_val.b, 1);
-	//
-	// out_val.x = max(out_val.r, 0.2);
-	// out_val.g = max(out_val.g, 0.195);
-	// out_val.b = max(out_val.b, 0.1);
-	 RWOutputSurface[DispatchThreadId.xy] = float4(out_val,Range);
+	// OutVal.x = min(OutVal.x, 1);
+	// OutVal.g = min(OutVal.g, 1);
+	// OutVal.b = min(OutVal.b, 1);
+
+	// OutVal.x = max(OutVal.x, 0.2);
+	// OutVal.g = max(OutVal.g, 0.195);
+	// OutVal.b = max(OutVal.b, 0.1);
+	 RWOutputSurface[DispatchThreadId.xy] = float4(OutVal,Range);
 
 	}
