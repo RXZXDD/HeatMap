@@ -5,13 +5,13 @@
 #define SHAPE 0 //0: circle; 1: squre
 
 
-float Total;
-float DataNum;
+uint Total;
+uint DataNum;
 RWTexture2D<float4> RWOutputSurface;//output UAV
 
 float4 input_Coord[MAX_DATA_NUM];// (input location in pixel ,0,0)
 float4 input_Val[MAX_DATA_NUM];// (Temp ,Wind,Rain, 0)
-float TextureSize;
+uint TextureSize;
 
 //float4 input_Val[3]; //input factor
 
