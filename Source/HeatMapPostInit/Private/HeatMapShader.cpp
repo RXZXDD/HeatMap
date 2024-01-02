@@ -61,7 +61,12 @@ static void RenderHeatMap_RenderThread(FRHICommandListImmediate& RHICmdList, FTe
 			ERDGPassFlags::Compute,
 			[ComputeShader, PassParam, GroupCount](FRHICommandList& RHICmdList)
 			{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
 				RHICmdList.SetComputeShader(ComputeShader.GetComputeShader());
+
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0 
+				SetComputePipelineState(RHICmdList, ComputeShader.GetComputeShader());
+#endif
 				SetShaderParameters(RHICmdList, ComputeShader, ComputeShader.GetComputeShader(), *PassParam);
 				FComputeShaderUtils::Dispatch(RHICmdList, ComputeShader, *PassParam, GroupCount);
 			}
@@ -78,10 +83,15 @@ static void RenderHeatMap_RenderThread(FRHICommandListImmediate& RHICmdList, FTe
 
 	//Copy result to pass-in RT 
 	//TODO Maybe a issue cause copy RT right after RDG exectue, and CS may not finish at this timing,may be have a delegate?
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0
 	RHICmdList.CopyTexture(PooledRenderTarget->GetRenderTargetItem().ShaderResourceTexture,
 		RenderTargetResource->GetRenderTargetTexture() ,
 		FRHICopyTextureInfo());
-
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0 
+	RHICmdList.CopyTexture(PooledRenderTarget->GetRHI(),
+		RenderTargetResource->GetRenderTargetTexture(),
+		FRHICopyTextureInfo());
+#endif
 }
 
 void FHeatMapRenderer::Render(UTextureRenderTarget2D* RenderTarget2D, TArray<FHeatMapInputParam>& InParams)

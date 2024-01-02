@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GlobalShader.h"
 #include "ShaderParameterStruct.h"
+#include "DataDrivenShaderPlatformInfo.h"
 #include "HeatMapShader.generated.h"
 
 #define MAX_DATA_NUM 2000
@@ -34,7 +35,6 @@ class FHeatMapShader : public FGlobalShader
 	END_SHADER_PARAMETER_STRUCT()
 
 		using FParameters = FMyParameters;
-
 
 	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
